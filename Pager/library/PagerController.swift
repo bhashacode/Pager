@@ -294,26 +294,28 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 				topLayoutGuide += nav.navigationBar.frame.size.height
 			}
 		}
+        
+        if let tabsView = self.tabsView{
+            var frame: CGRect = tabsView.frame
+            frame.origin.x = 0.0
+            frame.origin.y = (self.tabLocation == .top) ? topLayoutGuide + tabTopOffset: self.view.frame.height - self.tabHeight
+            frame.size.width = self.view.frame.width
+            frame.size.height = self.tabHeight
+            tabsView.frame = frame
 
-		var frame: CGRect = self.tabsView!.frame
-		frame.origin.x = 0.0
-		frame.origin.y = (self.tabLocation == .top) ? topLayoutGuide + tabTopOffset: self.view.frame.height - self.tabHeight
-		frame.size.width = self.view.frame.width
-		frame.size.height = self.tabHeight
-		self.tabsView!.frame = frame
+            frame = self.contentView.frame
+            frame.origin.x = 0.0
+            frame.origin.y = (self.tabLocation == .top) ? topLayoutGuide + tabsView.frame.height + tabTopOffset: topLayoutGuide
+            frame.size.width = self.view.frame.width
 
-		frame = self.contentView.frame
-		frame.origin.x = 0.0
-		frame.origin.y = (self.tabLocation == .top) ? topLayoutGuide + self.tabsView!.frame.height + tabTopOffset: topLayoutGuide
-		frame.size.width = self.view.frame.width
+            frame.size.height = self.view.frame.height - (topLayoutGuide + tabsView.frame.height + tabTopOffset)
 
-		frame.size.height = self.view.frame.height - (topLayoutGuide + self.tabsView!.frame.height + tabTopOffset)
+            if !ignoreBottomBarHeight && self.tabBarController != nil && self.tabBarController?.tabBar.isTranslucent == true {
+                frame.size.height -= self.tabBarController!.tabBar.frame.height
+            }
 
-		if !ignoreBottomBarHeight && self.tabBarController != nil && self.tabBarController?.tabBar.isTranslucent == true {
-			frame.size.height -= self.tabBarController!.tabBar.frame.height
-		}
-
-		self.contentView.frame = frame
+            self.contentView.frame = frame
+        }
 	}
 
 	func indexForViewController(_ viewController: UIViewController) -> Int {
@@ -595,7 +597,11 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             self.actualDelegate?.scrollViewDidScroll?(scrollView)
         }
 
-		let tabView: UIView = self.tabViewAtIndex(self.activeTabIndex)!
+        guard let tabView: UIView = self.tabViewAtIndex(self.activeTabIndex) else{
+            print("Warning! tab was zero at index", self.activeTabIndex, "reloading instead...")
+            self.reloadData()
+            return
+        }
 
 		if !self.animatingToTab {
 
