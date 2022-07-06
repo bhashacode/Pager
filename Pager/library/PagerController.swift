@@ -46,7 +46,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 	open var tabsViewBackgroundColor: UIColor = UIColor.gray
 	open var tabsTextColor: UIColor = UIColor.white
 	open var selectedTabTextColor = UIColor.white
-	open var tabsImageViewContentMode = UIViewContentMode.scaleAspectFit
+    open var tabsImageViewContentMode = UIView.ContentMode.scaleAspectFit
 	open weak var dataSource: PagerDataSource?
 	open weak var delegate: PagerDelegate?
 	open var tabHeight: CGFloat = 44.0
@@ -494,7 +494,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 				viewController = self.tabControllers[index]
 			}
 			self.contents[index] = viewController
-			self.pageViewController.addChildViewController(viewController)
+            self.pageViewController.addChild(viewController)
 		}
 		return self.contents[index]
 	}
@@ -552,7 +552,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 			})
 		} else if !(activeContentIndex + 1 == self.activeContentIndex || activeContentIndex - 1 == self.activeContentIndex) {
 
-			let direction: UIPageViewControllerNavigationDirection = (activeContentIndex < self.activeContentIndex) ? .reverse : .forward
+            let direction: UIPageViewController.NavigationDirection = (activeContentIndex < self.activeContentIndex) ? .reverse : .forward
 			DispatchQueue.main.async(execute: {
 				self.pageViewController.setViewControllers([viewController!], direction: direction, animated: true, completion: { completed in
 					wSelf?.animatingToTab = false
@@ -566,7 +566,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 				})
 			})
 		} else {
-			let direction: UIPageViewControllerNavigationDirection = (activeContentIndex < self.activeContentIndex) ? .reverse : .forward
+            let direction: UIPageViewController.NavigationDirection = (activeContentIndex < self.activeContentIndex) ? .reverse : .forward
 			DispatchQueue.main.async(execute: {
 				self.pageViewController.setViewControllers([viewController!], direction: direction, animated: true, completion: { _ -> Void in
 					wSelf!.animatingToTab = true
