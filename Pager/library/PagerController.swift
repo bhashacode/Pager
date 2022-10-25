@@ -83,7 +83,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 	// MARK: - Tab and content cache
 	internal var underlineStroke: UIView = UIView()
 	public var tabs: [UIView?] = []
-	internal var contents: [UIViewController?] = []
+	public var contents: [UIViewController?] = []
 	internal var tabCount: Int = 0
 	internal var activeTabIndex: Int = 0
 	internal var activeContentIndex: Int = 0
