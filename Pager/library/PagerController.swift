@@ -63,6 +63,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 	open var fixLaterTabsPosition: Bool = false
 	open var ignoreTopBarHeight: Bool = false
 	open var ignoreBottomBarHeight: Bool = false
+    open var disableTabContentOffsetAnimating:Bool = false
 	fileprivate var tabViews: [UIView] = []
 	fileprivate var tabControllers: [UIViewController] = []
 
@@ -395,8 +396,9 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 			frame.origin.x -= self.tabOffset
 			frame.size.width = self.tabsView!.frame.width
 		}
-
-		self.tabsView!.setContentOffset(frame.origin, animated: true)
+        if !disableTabContentOffsetAnimating {
+            self.tabsView!.setContentOffset(frame.origin, animated: true)
+        }
 	}
 
 	func tabViewAtIndex(_ index: Int) -> TabView? {
@@ -654,7 +656,9 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
 				let mov: CGFloat = scrollView.contentOffset.x - width
 				newX = rect.origin.x + ((distance * mov) / width)
 			}
-			updateIndicator(newX)
+            UIView.animate(withDuration: 0.1) {
+                updateIndicator(newX)
+            }
 		} else if self.animation == PagerAnimation.none {
 			newX = tabView.frame.origin.x
 			updateIndicator(newX)
