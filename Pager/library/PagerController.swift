@@ -274,7 +274,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
         
         // Select starting tab
         let index: Int = startIndex ?? (self.startFromSecondTab ? 1 : 0)
-        self.selectTabAtIndex(index, swipe: true,animated: animated)
+        self.selectTabAtIndex(index, swipe: true,animated: animated ?? true)
         
         if self.tabCount > 0 {
             // creates the indicator
