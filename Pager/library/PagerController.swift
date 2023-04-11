@@ -127,6 +127,11 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
         self.view.setNeedsDisplay()
     }
     
+    open func reloadData(startIndex:Int,animated:Bool = false) {
+        self.defaultSetup(startIndex: startIndex,animated: animated)
+        self.view.setNeedsDisplay()
+    }
+    
     open func selectTabAtIndex(_ index: Int) {
         self.selectTabAtIndex(index, swipe: false)
     }
@@ -177,7 +182,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
         self.pageViewController.delegate = self
     }
     
-    func defaultSetup() {
+    func defaultSetup(startIndex:Int? = nil, animated:Bool? = nil) {
         // Empty tabs and contents
         self.tabs.forEach { (tabView) in
             tabView?.removeFromSuperview()
@@ -268,8 +273,8 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
         self.view.insertSubview(self.contentView, at: 0)
         
         // Select starting tab
-        let index: Int = self.startFromSecondTab ? 1 : 0
-        self.selectTabAtIndex(index, swipe: true)
+        let index: Int = startIndex ?? (self.startFromSecondTab ? 1 : 0)
+        self.selectTabAtIndex(index, swipe: true,animated: animated ?? true)
         
         if self.tabCount > 0 {
             // creates the indicator
