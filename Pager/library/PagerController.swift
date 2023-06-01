@@ -64,6 +64,10 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
     open var ignoreTopBarHeight: Bool = false
     open var ignoreBottomBarHeight: Bool = false
     open var disableTabContentOffsetAnimating:Bool = false
+    open var animateTabPaging:Bool = false
+    open var automaticTabWidth:Bool = false
+    open var tabViewIsPagingEnabled:Bool = false
+    
     fileprivate var tabViews: [UIView] = []
     fileprivate var tabControllers: [UIViewController] = []
     
@@ -223,7 +227,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             self.tabsView!.showsVerticalScrollIndicator = false
             self.tabsView?.isScrollEnabled = true
             self.tabsView!.tag = 38
-            
+            self.tabsView?.isPagingEnabled = self.tabViewIsPagingEnabled
             self.view.insertSubview(self.tabsView!, at: 0)
         } else {
             self.tabsView = self.view.viewWithTag(38) as? UIScrollView
@@ -246,7 +250,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             let tabView: UIView? = self.tabViewAtIndex(i) as UIView?
             var frame: CGRect = tabView!.frame
             frame.origin.x = contentSizeWidth
-            frame.size.width = self.tabWidth
+            frame.size.width = self.automaticTabWidth ? (tabView?.frame.width ?? .zero) : self.tabWidth
             tabView!.frame = frame
             
             self.tabsView!.addSubview(tabView!)
@@ -283,6 +287,10 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             rect.size.height = self.indicatorHeight
             
             self.underlineStroke = UIView(frame: rect)
+            self.underlineStroke.autoresizingMask = [.flexibleTopMargin,
+                                                     .flexibleLeftMargin,
+                                                     .flexibleRightMargin,
+                                                     .flexibleWidth]
             self.underlineStroke.backgroundColor = self.indicatorColor
             self.tabsView!.addSubview(self.underlineStroke)
         }
@@ -428,7 +436,12 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             }
             tabViewContent.autoresizingMask = [.flexibleHeight, .flexibleWidth]
             
-            let tabView: TabView = TabView(frame: CGRect(x: 0.0, y: 0.0, width: self.tabWidth, height: self.tabHeight))
+            let w =  self.automaticTabWidth ? (tabViewContent.frame.width ?? .zero) : self.tabWidth
+            var tabView: TabView = TabView(frame: CGRect(x: 0.0, y: 0.0, width: w, height: self.tabHeight))
+            
+            if automaticTabWidth{
+                tabView = TabView(frame: CGRect(x: 0.0, y: 0.0, width: tabViewContent.frame.width  , height: self.tabHeight))
+            }
             tabView.addSubview(tabViewContent)
             tabView.clipsToBounds = true
             tabViewContent.center = tabView.center
@@ -459,7 +472,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             let tabView = self.tabViewAtIndex(i)
             var frame: CGRect = tabView!.frame
             frame.origin.x = contentSizeWidth
-            frame.size.width = self.tabWidth
+            frame.size.width =  self.automaticTabWidth ? (tabView?.frame.width ?? .zero) : self.tabWidth
             tabView?.frame = frame
             contentSizeWidth += tabView!.frame.width
         }
@@ -601,6 +614,10 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
         }
         self.activeContentIndex = activeContentIndex
     }
+    var lastScrollTabX:CGFloat = .zero
+    var lastContentOffset:CGFloat = 0.0
+    var didMovedRight:Bool?
+    var previousDidMovedRight:Bool?
     
     // MARK: - UIScrollViewDelegate
     // MARK: Responding to Scrolling and Dragging
@@ -615,12 +632,44 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             return
         }
         
+        
+        // Get the related tab view position
+        var frame: CGRect = tabView.frame
+        let movedRatio: CGFloat = (scrollView.contentOffset.x / scrollView.frame.width) - 1
+        frame.origin.x += movedRatio * frame.width
+        
+        var previousTabFrame:CGRect?
+        var nextTabFrame:CGRect?
+        var nextSelected:CGRect?
+        
+        if self.tabs.indices.contains(self.activeContentIndex - 1){
+            previousTabFrame = self.tabs[self.activeContentIndex - 1]?.frame
+        }
+        
+        if self.tabs.indices.contains(self.activeContentIndex + 1){
+            nextTabFrame = self.tabs[self.activeContentIndex + 1]?.frame
+        }
+        
+        if  self.lastContentOffset == scrollView.contentOffset.x{
+            didMovedRight = nil
+        }else{
+            didMovedRight  = self.lastContentOffset < scrollView.contentOffset.x
+        }
+        
+        self.lastContentOffset = scrollView.contentOffset.x
+        
+        if let didMovedRight{
+            nextSelected = didMovedRight ? nextTabFrame : previousTabFrame
+        }
+        
+        guard let tabsView else {return}
+        let visibleRect = CGRect(x: tabsView.contentOffset.x,
+                                 y: tabsView.contentOffset.y,
+                                 width: tabsView.bounds.size.width,
+                                 height: tabsView.bounds.size.height)
+        
+        
         if !self.animatingToTab {
-            
-            // Get the related tab view position
-            var frame: CGRect = tabView.frame
-            let movedRatio: CGFloat = (scrollView.contentOffset.x / scrollView.frame.width) - 1
-            frame.origin.x += movedRatio * frame.width
             
             if self.centerCurrentTab {
                 
@@ -638,45 +687,112 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             } else {
                 
                 frame.origin.x -= self.tabOffset
-                frame.size.width = self.tabsView!.frame.width
+                if !visibleRect.contains(tabView.frame){
+                    frame.size.width = self.tabsView!.frame.width
+                }
             }
-            
-            self.tabsView!.scrollRectToVisible(frame, animated: false)
+            let shouldAnimate = !visibleRect.contains(tabView.frame)
+            self.tabsView!.scrollRectToVisible(frame, animated: shouldAnimate)
+        }else{
+            if animateTabPaging{
+                if !visibleRect.contains(tabView.frame){
+                    frame.origin.x -= self.tabOffset
+                    if !visibleRect.contains(tabView.frame){
+                        frame.size.width = self.tabsView!.frame.width
+                    }
+                    if !self.lastScrollTabX.isEqual(to: frame.origin.x){
+                        self.tabsView!.scrollRectToVisible(frame, animated: true)
+                        self.lastScrollTabX = frame.origin.x
+                    }
+                }
+            }
         }
         
         var rect: CGRect = tabView.frame
-        
-        let updateIndicator = {
-            (newX: CGFloat) -> Void in
-            rect.origin.x = newX
-            rect.origin.y = self.underlineStroke.frame.origin.y
-            rect.size.height = self.underlineStroke.frame.size.height
-            self.underlineStroke.frame = rect
+        switch scrollView.panGestureRecognizer.state{
+        case .began, .cancelled:
+            break
+        case .changed:
+            self.previousDidMovedRight = self.didMovedRight
+        default:
+            break
         }
         
+        //Animate UnderStroke Width
+        if !didTapOnTabView{
+            if let nextSelected{
+                
+                var refVw = tabView
+                if let previousDidMovedRight, previousDidMovedRight != didMovedRight{
+                    
+                    refVw = self.underlineStroke
+                    
+                }
+                if refVw.frame.width > nextSelected.width{
+                    
+                    let excess = refVw.frame.width - nextSelected.width
+                    let final = refVw.frame.width - abs(excess * movedRatio)
+                    
+                    
+                    rect.size.width = final
+                }else if refVw.frame.width < nextSelected.width{
+                    let excess = nextSelected.width - refVw.frame.width
+                    let final = refVw.frame.width + abs(excess * movedRatio)
+                    
+                    
+                    rect.size.width = final
+                }
+                
+            }
+        }
+        
+        //Update Indicator
+        let updateIndicator = {
+            (newX: CGFloat, newWidth: CGFloat) -> Void in
+            rect.origin.x = newX
+            rect.origin.y = self.underlineStroke.frame.origin.y
+            rect.size.width = newWidth
+            rect.size.height = self.underlineStroke.frame.size.height
+            self.underlineStroke.frame = rect
+            
+        }
+        
+        var newWidth:CGFloat = rect.width
         var newX: CGFloat
         let width: CGFloat = self.view.frame.width
         let distance: CGFloat = tabView.frame.size.width
         
         if self.animation == PagerAnimation.during && !self.didTapOnTabView {
-            if scrollView.panGestureRecognizer.translation(in: scrollView.superview!).x > 0 {
+            if !(didMovedRight ?? !(scrollView.panGestureRecognizer.translation(in: scrollView.superview!).x > 0)) {
                 let mov: CGFloat = width - scrollView.contentOffset.x
-                newX = rect.origin.x - ((distance * mov) / width)
+                //                newX = rect.origin.x - ((distance * mov) / width)
+                var excess:CGFloat = 0
+                if let nextSelected{
+                    excess = nextSelected.origin.x - tabView.frame.origin.x
+                }
+                newX = tabView.frame.origin.x - (excess * movedRatio)
             } else {
                 let mov: CGFloat = scrollView.contentOffset.x - width
-                newX = rect.origin.x + ((distance * mov) / width)
+                //                newX = rect.origin.x + ((distance * mov) / width)
+                var excess:CGFloat = 0
+                if let nextSelected{
+                    excess = nextSelected.origin.x - tabView.frame.origin.x
+                    newX = tabView.frame.origin.x + (excess * movedRatio)
+                }else{
+                    newX = tabView.frame.origin.x + (excess * movedRatio)
+                }
             }
-            UIView.animate(withDuration: 0.1) {
-                updateIndicator(newX)
+            UIView.animate(withDuration: 0.05, delay: 0.0, options: [.curveEaseInOut]) {
+                updateIndicator(newX, newWidth)
             }
         } else if self.animation == PagerAnimation.none {
             newX = tabView.frame.origin.x
-            updateIndicator(newX)
+            updateIndicator(newX, newWidth)
         } else if self.animation == PagerAnimation.end || self.didTapOnTabView {
             newX = tabView.frame.origin.x
             UIView.animate(withDuration: 0.35, animations: {
                 () -> Void in
-                updateIndicator(newX)
+                updateIndicator(newX, newWidth)
             })
         }
     }
