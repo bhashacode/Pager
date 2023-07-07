@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = 'Pager'
-  s.version = '1.4.8'
+  s.version = '1.4.9'
   s.license = 'MIT'
   s.summary = 'Easily create sliding tabs with Pager.'
   s.homepage = 'https://github.com/lucoceano/Pager'

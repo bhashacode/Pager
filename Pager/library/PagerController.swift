@@ -67,6 +67,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
     open var animateTabPaging:Bool = false
     open var automaticTabWidth:Bool = false
     open var tabViewIsPagingEnabled:Bool = false
+    open var tabViewIsScrollEnabled:Bool = true
     
     fileprivate var tabViews: [UIView] = []
     fileprivate var tabControllers: [UIViewController] = []
@@ -225,7 +226,7 @@ open class PagerController: UIViewController, UIPageViewControllerDataSource, UI
             self.tabsView?.bounces = false
             self.tabsView!.showsHorizontalScrollIndicator = false
             self.tabsView!.showsVerticalScrollIndicator = false
-            self.tabsView?.isScrollEnabled = true
+            self.tabsView?.isScrollEnabled = self.tabViewIsScrollEnabled
             self.tabsView!.tag = 38
             self.tabsView?.isPagingEnabled = self.tabViewIsPagingEnabled
             self.view.insertSubview(self.tabsView!, at: 0)
