@@ -12,20 +12,30 @@ extension Array {
 }
 
 extension UIDevice {
+    
     static var isIphoneX: Bool {
-        var modelIdentifier = ""
-        if isSimulator {
-            modelIdentifier = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? ""
+        return keyWindow?.hasNotch ?? false
+    }
+    
+    static var keyWindow: UIWindow? {
+        // iOS 13+ multi-scene support
+        if #available(iOS 13.0, *) {
+            return UIApplication.shared
+                .connectedScenes                       // all scenes (UIWindowScene, etc.)
+                .compactMap { $0 as? UIWindowScene }  // only window scenes
+                .flatMap { $0.windows }               // all windows in each scene
+                .first { $0.isKeyWindow }             // pick the one that’s key
         } else {
-            var size = 0
-            sysctlbyname("hw.machine", nil, &size, nil, 0)
-            var machine = [CChar](repeating: 0, count: size)
-            sysctlbyname("hw.machine", &machine, &size, nil, 0)
-            modelIdentifier = String(cString: machine)
+            // Fallback on earlier versions
+            return UIApplication.shared.keyWindow
         }
-
-        return modelIdentifier == "iPhone10,3" || modelIdentifier == "iPhone10,6"
     }
 
-    static var isSimulator: Bool = TARGET_OS_SIMULATOR != 0
+}
+
+extension UIWindow {
+  var hasNotch: Bool {
+    safeAreaInsets.top > 20
+  }
+    
 }
